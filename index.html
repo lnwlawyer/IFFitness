@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IF 16/8 & Fitness Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Kanit', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: { 50: '#eff6ff', 100: '#dbeafe', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.5s ease-in-out;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); border-radius: 9999px; }
+    
+    @keyframes dropFill {
+      0% { transform: scale(0.9); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .water-filled { animation: dropFill 0.3s ease-out forwards; color: #3b82f6; }
+  </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
+  
+  <header class="bg-white/80 dark:bg-slate-800/80 backdrop-blur border-b border-slate-200 dark:border-slate-700/60 sticky top-0 z-40 px-4 py-3 sm:px-6 transition-colors duration-300">
+    <div class="max-w-5xl mx-auto flex items-center justify-between flex-wrap gap-2">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <i class="fa-solid fa-stopwatch text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            IF 16/8 Tracker
+            <span id="header-day-badge" class="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 whitespace-nowrap">วันนี้</span>
+          </h1>
+          <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">เป้าหมายน้ำหนัก: <span id="header-target-weight" class="font-bold text-brand-600 dark:text-brand-400">-- kg</span></p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button id="btn-theme" class="p-2 w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center justify-center shrink-0" title="สลับโหมดกลางวัน/กลางคืน">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button id="btn-wakelock" class="p-2 w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-700 transition flex items-center justify-center shrink-0" title="ป้องกันหน้าจอดับ">
+          <i class="fa-solid fa-eye-slash"></i>
+        </button>
+        <button id="btn-toggle-sound" class="p-2 w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center justify-center shrink-0" title="เปิด/ปิด เสียงเตือน">
+          <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+        </button>
+        <button id="btn-settings" class="p-2 w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center justify-center shrink-0" title="ตั้งค่า">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-5xl mx-auto w-full p-4 sm:p-6 space-y-5 sm:space-y-6 overflow-y-auto custom-scroll">
+    
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      
+      <!-- Body Analysis Card -->
+      <div class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-sm flex flex-col justify-between transition-colors duration-300">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-pie text-purple-500"></i> วิเคราะห์ร่างกาย (Fat Loss)
+          </h3>
+          <button onclick="document.getElementById('btn-settings').click()" class="text-[10px] text-brand-600 hover:bg-brand-100 dark:text-brand-400 dark:hover:bg-brand-500/20 bg-brand-50 dark:bg-brand-500/10 px-2 py-1.5 rounded-lg transition whitespace-nowrap">ตั้งค่าข้อมูล</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs flex-1">
+          <div class="bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/50 p-2.5 rounded-xl flex flex-col justify-center min-w-0">
+            <span class="text-slate-500 dark:text-slate-400 block text-[10px] mb-0.5 truncate">BMI (ดัชนีมวลกาย)</span>
+            <span id="analysis-bmi" class="font-bold text-slate-800 dark:text-slate-100 text-sm">--</span>
+            <span id="analysis-bmi-label" class="text-[10px] font-medium block">--</span>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/50 p-2.5 rounded-xl flex flex-col justify-center min-w-0">
+            <span class="text-slate-500 dark:text-slate-400 block text-[10px] mb-0.5 truncate">BMR (เผาผลาญพื้นฐาน)</span>
+            <span id="analysis-bmr" class="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">-- kcal</span>
+            <span class="text-[9px] text-slate-400 mt-0.5 truncate">พักผ่อนไม่ได้ทำอะไร</span>
+          </div>
+          <div class="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 p-2.5 rounded-xl col-span-2 flex flex-col justify-center">
+            <span class="text-indigo-600 dark:text-indigo-400 block text-[10px] font-semibold mb-0.5 flex items-center gap-1"><i class="fa-solid fa-bullseye"></i> <span id="tdee-title">เป้าหมายแคลอรี่ลดไขมันต่อวัน</span></span>
+            <span id="analysis-tdee-goal" class="font-bold text-slate-800 dark:text-white text-base">-- kcal</span>
+            <span class="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">รวมออกกำลังกายและหักออก 500 kcal (Deficit) แล้ว</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-sm flex flex-col justify-between transition-colors duration-300">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1.5 cursor-pointer hover:text-blue-500 transition" onclick="document.getElementById('hydration-modal').classList.remove('hidden')">
+            <i class="fa-solid fa-droplet text-blue-500"></i> ดื่มน้ำ (เป้า 12 แก้ว/3L) <i class="fa-solid fa-circle-info text-[10px] text-slate-400"></i>
+          </h3>
+          <span id="water-count-text" class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded-lg">0 / 12</span>
+        </div>
+        <p class="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-relaxed">เป้า 3.0L ขับโซเดียม ชดเชยเหงื่อ ลดหิว และตัดน้ำ 21:00 น. กันตื่นกลางดึก</p>
+        <button onclick="document.getElementById('hydration-modal').classList.remove('hidden')" class="w-full text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg py-1 flex items-center justify-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition mb-2">
+          <i class="fa-solid fa-book-medical"></i> ดูตาราง Optimal Hydration
+        </button>
+        <div class="flex flex-wrap gap-1.5 items-center justify-center flex-1">
+          <div id="water-drops-container" class="flex flex-wrap justify-center gap-1.5"></div>
+        </div>
+        <div class="mt-3 flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-700/50">
+          <button id="btn-water-minus" class="text-slate-400 hover:text-red-500 transition px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg"><i class="fa-solid fa-minus"></i></button>
+          <button id="btn-water-add" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-4 py-1.5 rounded-lg transition shadow-sm font-medium">ดื่มน้ำ 1 แก้ว</button>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 border border-amber-200/50 dark:border-slate-700/60 rounded-2xl p-4 shadow-sm flex flex-col justify-between transition-colors duration-300 lg:col-span-1 md:col-span-2">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-sm font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-fire text-orange-500"></i> ความสำเร็จต่อเนื่อง (Streak)
+          </h3>
+        </div>
+        <div class="flex items-center justify-center gap-3 py-2 flex-1">
+          <div class="text-4xl font-black text-orange-500 drop-shadow-sm" id="streak-days">0</div>
+          <div class="text-xs text-amber-700 dark:text-slate-300 font-medium leading-tight">วัน<br>ที่ทำ IF สำเร็จ<br>อย่างต่อเนื่อง</div>
+        </div>
+        <button id="btn-checkin" class="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md shadow-orange-500/20 mt-2 flex items-center justify-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-check-circle"></i> บันทึกความสำเร็จของวันนี้
+        </button>
+      </div>
+
+    </section>
+
+    <section class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors duration-300 relative overflow-hidden mt-4 sm:mt-5">
+      <div class="absolute -right-10 -top-10 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl pointer-events-none transition-colors"></div>
+      
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-4 relative z-10">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-stopwatch text-teal-500"></i> วิเคราะห์ข้อมูลจาก Smartwatch
+          </h2>
+          <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">เชื่อมต่อผลลัพธ์จาก Amazfit Bip 6 แบบแมนนวลเพื่อความแม่นยำ</p>
+        </div>
+        <button id="btn-open-smartwatch" class="text-[10px] sm:text-xs px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 dark:bg-teal-500/20 dark:hover:bg-teal-500/30 dark:text-teal-300 dark:border-teal-500/30 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0">
+          <i class="fa-solid fa-plus"></i> บันทึกค่าวันนี้
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 relative z-10">
+        <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 flex items-start gap-3 transition-colors">
+          <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-bed"></i>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">คุณภาพการนอนหลับ</div>
+            <div class="font-bold text-slate-800 dark:text-white text-sm truncate" id="sw-sleep-val">-- ชม.</div>
+            <div class="text-[10px] mt-1 text-slate-500 leading-tight" id="sw-sleep-analysis">รอการบันทึกข้อมูล</div>
+          </div>
+        </div>
+        
+        <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 flex items-start gap-3 transition-colors">
+          <div class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-fire-flame-curved"></i>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">แคลอรี่ที่เผาผลาญจริง</div>
+            <div class="font-bold text-slate-800 dark:text-white text-sm truncate"><span id="sw-cal-val">--</span> kcal</div>
+            <div class="text-[10px] mt-1 text-slate-600 dark:text-slate-400 leading-tight" id="sw-cal-analysis">รวมในเป้าหมายรายวันแล้ว</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 flex items-start gap-3 transition-colors">
+          <div class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">โซนหัวใจ (Avg HR)</div>
+            <div class="font-bold text-slate-800 dark:text-white text-sm truncate"><span id="sw-hr-val">--</span> bpm</div>
+            <div class="text-[10px] mt-1 text-slate-500 leading-tight" id="sw-hr-analysis">รอการบันทึกข้อมูลหลังซ้อม</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-sm transition-colors duration-300">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-calendar-week text-brand-500 dark:text-brand-400"></i>
+          <span class="text-sm font-bold text-slate-800 dark:text-white">ตารางประจำสัปดาห์</span>
+        </div>
+        <button id="btn-jump-today" class="text-[10px] sm:text-xs px-2.5 py-1.5 bg-brand-50 dark:bg-brand-600/30 hover:bg-brand-100 dark:hover:bg-brand-600/50 text-brand-600 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30 rounded-lg transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-rotate-right text-[10px]"></i> กลับมาดูวันนี้
+        </button>
+      </div>
+      <div class="grid grid-cols-7 gap-1 sm:gap-2" id="week-day-buttons">
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      
+      <div class="md:col-span-1 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-5 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden transition-colors duration-300">
+        <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div class="relative w-40 h-40 sm:w-44 sm:h-44 flex items-center justify-center mb-3">
+          <svg class="w-full h-full" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="68" stroke="currentColor" stroke-width="10" fill="transparent" class="text-slate-100 dark:text-slate-700/50 transition-colors" />
+            <circle id="progress-circle" cx="80" cy="80" r="68" stroke="currentColor" stroke-width="10" fill="transparent" stroke-dasharray="427.26" stroke-dashoffset="100" stroke-linecap="round" class="progress-ring-circle text-indigo-500" />
+          </svg>
+          <div class="absolute flex flex-col items-center">
+            <span id="state-badge" class="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-1 bg-indigo-100 text-indigo-600 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 whitespace-nowrap transition-colors">ช่วง Fasting</span>
+            <span id="timer-display" class="text-2xl sm:text-3xl font-bold font-mono text-slate-800 dark:text-white tracking-tight">00:00:00</span>
+            <span id="timer-subtext" class="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">เหลือเวลาในเฟสนี้</span>
+          </div>
+        </div>
+
+        <div class="w-full grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-100 dark:border-slate-700/50">
+          <div class="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-xl text-left border border-slate-100 dark:border-transparent">
+            <span class="text-slate-400 dark:text-slate-500 block text-[9px] sm:text-[10px]">เวลาปัจจุบัน</span>
+            <span id="current-time-text" class="font-bold text-slate-700 dark:text-slate-100 font-mono text-xs sm:text-sm">--:--:--</span>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-xl text-left border border-slate-100 dark:border-transparent min-w-0">
+            <span class="text-slate-400 dark:text-slate-500 block text-[9px] sm:text-[10px]">มื้อถัดไป / กิจกรรม</span>
+            <span id="next-event-text" class="font-bold text-brand-600 dark:text-brand-400 truncate block text-xs sm:text-sm">กำลังคำนวณ...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="md:col-span-2 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-sm transition-colors duration-300">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm sm:text-base font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-compass text-brand-500 dark:text-brand-400"></i> สถานะกิจกรรมขณะนี้ (Real-time)
+            </h2>
+            <span class="text-[10px] sm:text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-700/60 rounded-lg text-slate-500 dark:text-slate-300 font-mono border border-slate-200 dark:border-transparent whitespace-nowrap">
+              24-Hour Cycle
+            </span>
+          </div>
+
+          <div id="current-activity-box" class="p-3 sm:p-4 rounded-xl border border-indigo-200 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-950/20 transition-all duration-300">
+            <div class="flex items-start gap-3 sm:gap-4">
+              <div id="activity-icon-container" class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-600/30 dark:text-indigo-400 flex items-center justify-center text-lg sm:text-xl shrink-0 transition-colors">
+                <i id="activity-icon" class="fa-solid fa-moon"></i>
+              </div>
+              <div class="space-y-1 min-w-0">
+                <h3 id="activity-title" class="font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base truncate">ช่วง Fasting (อดอาหาร)</h3>
+                <p id="activity-desc" class="text-[10px] sm:text-xs text-slate-600 dark:text-slate-300 leading-relaxed break-words">
+                  ดื่มได้เฉพาะน้ำเปล่า หรืออเมริกาโน่โซดา
+                </p>
+                <div id="activity-tips" class="inline-flex items-start sm:items-center gap-1.5 text-[10px] sm:text-[11px] text-amber-600 dark:text-amber-300/90 font-medium pt-1">
+                  <i class="fa-solid fa-lightbulb mt-0.5 sm:mt-0 shrink-0"></i>
+                  <span>เคล็ดลับ: จิบน้ำเปล่าแก้วใหญ่หากมีอาการท้องร้อง</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 w-full overflow-x-auto custom-scroll pb-2">
+          <div class="min-w-[400px]">
+            <div class="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mb-2 font-medium">ภาพรวม 24 ชั่วโมง (IF Window)</div>
+            
+            <div class="relative w-full h-12 flex flex-col justify-end pb-1.5 mt-2">
+              <div id="timeline-labels" class="absolute top-0 w-full h-full text-[9px] font-mono pointer-events-none z-20 flex items-end">
+                <!-- Javascript will insert labels here with absolute positioning -->
+              </div>
+              <div id="timeline-track" class="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-3.5 flex relative overflow-hidden shadow-inner border border-slate-200 dark:border-slate-700 transition-colors">
+                <div id="day-progress-pin" class="absolute top-0 bottom-0 w-1.5 bg-yellow-400 shadow-md transform -translate-x-1/2 rounded-full transition-all duration-300 z-30 border border-white/50 dark:border-transparent"></div>
+              </div>
+            </div>
+            
+            <div class="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-2">
+              <span class="flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-full bg-indigo-400 dark:bg-indigo-500 inline-block"></span> Fasting</span>
+              <span class="flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 dark:bg-emerald-500 inline-block"></span> Feeding</span>
+              <span class="flex items-center gap-1 whitespace-nowrap"><span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span> ปัจจุบัน</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 transition-colors duration-300">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <i class="fa-regular fa-calendar-check text-emerald-500 dark:text-emerald-400"></i> 
+            <span id="selected-day-label">ตารางประจำวัน</span>
+          </h2>
+          <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">ตารางกิจกรรมตามวันที่คุณเลือก ระบบจะส่งเสียงเตือนอัตโนมัติตามเวลา</p>
+        </div>
+      </div>
+      <div class="space-y-2.5 sm:space-y-3" id="schedule-list">
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+      
+      <div class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm transition-colors duration-300 flex flex-col min-w-0">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-3 min-w-0">
+            <div id="workout-icon-box" class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0">
+              <i class="fa-solid fa-person-biking" id="workout-box-icon"></i>
+            </div>
+            <div class="min-w-0">
+              <h3 class="font-bold text-slate-800 dark:text-white text-xs sm:text-sm truncate" id="workout-card-title">แผนซ้อมประจำวัน</h3>
+              <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate" id="workout-card-subtitle">ธีมการฝึก</p>
+            </div>
+          </div>
+          <span id="workout-intensity-tag" class="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap shrink-0">Zone 2</span>
+        </div>
+        
+        <div id="workout-detail-content" class="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 space-y-2 list-none pt-2 border-t border-slate-100 dark:border-slate-700/60 leading-relaxed flex-1">
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm transition-colors duration-300 flex flex-col relative overflow-hidden min-w-0">
+        <div class="flex items-center justify-between gap-2 relative z-10">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 flex items-center justify-center text-lg shrink-0 transition-colors">
+              <i class="fa-solid fa-utensils"></i>
+            </div>
+            <div class="min-w-0">
+              <h3 class="font-bold text-slate-800 dark:text-white text-xs sm:text-sm truncate" id="meal-card-title">เมนูแนะนำประจำวัน</h3>
+              <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">Sustain Rule: สลับเมนูแก้เบื่อ</p>
+            </div>
+          </div>
+          <button id="btn-random-meal" class="text-[10px] sm:text-xs px-2 sm:px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-600 border border-brand-200 dark:bg-brand-600/20 dark:hover:bg-brand-600/40 dark:text-brand-300 dark:border-brand-500/30 rounded-xl font-medium transition flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0">
+            <i class="fa-solid fa-dice"></i> สุ่มเมนูใหม่
+          </button>
+        </div>
+
+        <div id="meal-detail-content" class="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 space-y-2.5 list-none pt-2 border-t border-slate-100 dark:border-slate-700/60 leading-relaxed relative z-10 flex-1">
+        </div>
+        <i class="fa-solid fa-seedling absolute -bottom-4 -right-2 text-6xl text-emerald-50 dark:text-emerald-900/20 rotate-12 pointer-events-none transition-colors"></i>
+      </div>
+
+    </section>
+
+  </main>
+
+  <div id="smartwatch-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-colors">
+      <div class="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-700">
+        <h3 class="font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-stopwatch text-teal-500"></i> บันทึกข้อมูล Amazfit</h3>
+        <button id="btn-close-smartwatch" class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      
+      <div class="p-5 space-y-4">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">ระยะเวลาการนอนหลับเมื่อคืน (ชั่วโมง)</label>
+          <input type="number" id="input-sw-sleep" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-teal-500 transition" placeholder="เช่น 7.5" step="0.1">
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">แคลอรี่ที่เผาผลาญจากการซ้อม (Active kcal)</label>
+          <input type="number" id="input-sw-cal" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-teal-500 transition" placeholder="เช่น 350">
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">อัตราการเต้นหัวใจเฉลี่ยตอนซ้อม (Avg HR bpm)</label>
+          <input type="number" id="input-sw-hr" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-teal-500 transition" placeholder="เช่น 135">
+        </div>
+      </div>
+      
+      <div class="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <button id="btn-save-smartwatch" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 rounded-xl transition shadow-md">ประมวลผลและบันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-colors">
+      <div class="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-700">
+        <h3 class="font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-sliders text-brand-500"></i> ตั้งค่าข้อมูลส่วนตัว</h3>
+        <button id="btn-close-settings" class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      
+      <div class="p-4 space-y-4 overflow-y-auto custom-scroll max-h-[70vh]">
+        <div class="p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl space-y-3 transition-colors">
+          <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"><i class="fa-solid fa-user"></i> ข้อมูลร่างกาย (สำหรับคำนวณ BMR)</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">เพศ</label>
+              <select id="input-gender" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 transition">
+                <option value="male">ชาย</option>
+                <option value="female">หญิง</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">อายุ (ปี)</label>
+              <input type="number" id="input-age" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 transition">
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">ส่วนสูง (ซม.)</label>
+              <input type="number" id="input-height" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 transition">
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">น้ำหนักปัจจุบัน (กก.)</label>
+              <input type="number" id="input-current-weight" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 transition" step="0.1">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">น้ำหนักเป้าหมาย (kg)</label>
+          <input type="number" id="input-target-weight" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 transition" step="0.1">
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"><i class="fa-solid fa-utensils text-emerald-500"></i> เปิด Fast</label>
+            <input type="time" id="input-if-open" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"><i class="fa-solid fa-lock text-indigo-500"></i> ปิด Fast</label>
+            <input type="time" id="input-if-close" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500 transition">
+          </div>
+        </div>
+      </div>
+      
+      <div class="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <button id="btn-save-settings" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-xl transition shadow-md">บันทึกการตั้งค่า</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="hydration-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-colors">
+      <div class="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-700">
+        <h3 class="font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-glass-water text-blue-500"></i> Optimal Hydration Protocol</h3>
+        <button onclick="document.getElementById('hydration-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      
+      <div class="p-4 space-y-4 overflow-y-auto custom-scroll max-h-[70vh]">
+        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl space-y-2 text-xs text-blue-800 dark:text-blue-300">
+          <h4 class="font-bold mb-1"><i class="fa-solid fa-bullseye"></i> เป้าหมายหลัก (~3.0 ลิตร/วัน)</h4>
+          <ul class="list-disc pl-4 space-y-1">
+            <li>ขับโซเดียม ลดอาการบวมน้ำและหน้าบวม</li>
+            <li>ชดเชยน้ำที่สูญเสียจากการปั่นจักรยาน 1 ชม.</li>
+            <li>ลดอาการท้องร้องระหว่าง Fasting 16/8</li>
+            <li>ป้องกันการตื่นมาปัสสาวะกลางดึก (Nocturia) เพื่อให้หลับลึกเต็มอิ่ม</li>
+          </ul>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700 pb-1">ตารางดื่มน้ำตลอด 24 ชั่วโมง (มีแจ้งเตือน)</h4>
+          <ul class="text-[11px] text-slate-600 dark:text-slate-400 space-y-2.5">
+            <li class="flex gap-2"><span class="font-bold text-blue-500 w-10 shrink-0">06:00</span> <span>ตื่นนอนดื่มทันที 2 แก้ว (500ml) กระตุ้นระบบ</span></li>
+            <li class="flex gap-2"><span class="font-bold text-blue-500 w-10 shrink-0">08:00</span> <span>จิบช่วงเช้า 1 แก้ว (250ml) ลดหิวช่วง Fasting</span></li>
+            <li class="flex gap-2"><span class="font-bold text-blue-500 w-10 shrink-0">10:00</span> <span>จิบช่วงสาย 1 แก้ว (250ml) ขับโซเดียม</span></li>
+            <li class="flex gap-2"><span class="font-bold text-blue-500 w-10 shrink-0">12:00</span> <span>พร้อมเปิด Fast มื้อแรก 1 แก้ว (250ml)</span></li>
+            <li class="flex gap-2"><span class="font-bold text-blue-500 w-10 shrink-0">14:00</span> <span>จิบบ่ายๆ 1 แก้ว (250ml) รักษาความสดชื่น</span></li>
+            <li class="flex gap-2"><span class="font-bold text-blue-500 w-10 shrink-0">16:00</span> <span>จิบช่วงเย็น 1 แก้ว (250ml) เตรียมก่อนซ้อม</span></li>
+            <li class="flex gap-2"><span class="font-bold text-blue-500 w-10 shrink-0">17:30</span> <span>ก่อนปั่น 30 นาที 1 แก้ว (250ml) Pre-hydration</span></li>
+            <li class="flex gap-2"><span class="font-bold text-blue-500 w-10 shrink-0">18:30</span> <span>ระหว่างซ้อม 2 แก้ว (~500ml) จิบเรื่อยๆ ชดเชยเหงื่อ</span></li>
+            <li class="flex gap-2"><span class="font-bold text-blue-500 w-10 shrink-0">19:30</span> <span>หลังซ้อม+มื้อเย็น 1 แก้ว (250ml) ช่วยฟื้นฟู</span></li>
+            <li class="flex gap-2"><span class="font-bold text-red-400 w-10 shrink-0">21:00</span> <span class="text-slate-800 dark:text-slate-200 font-medium">แก้วสุดท้าย! 1 แก้ว (250ml) 🚫 หยุดดื่มหลังแก้วนี้เพื่อไม่ให้ปวดปัสสาวะกลางดึก</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-modal" class="fixed bottom-6 right-4 sm:right-6 z-50 transform translate-y-32 opacity-0 pointer-events-none transition-all duration-300 max-w-sm w-[calc(100%-2rem)] sm:w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-brand-500/50 rounded-2xl p-4 shadow-2xl flex items-start gap-3">
+    <div id="toast-icon-bg" class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/20 text-brand-500 dark:text-brand-400 flex items-center justify-center text-lg shrink-0">
+      <i id="toast-icon" class="fa-solid fa-bell"></i>
+    </div>
+    <div class="flex-1 min-w-0">
+      <h4 id="toast-title" class="text-sm font-bold text-slate-800 dark:text-white truncate">การแจ้งเตือน</h4>
+      <p id="toast-message" class="text-xs text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed break-words">ข้อความ</p>
+    </div>
+    <button id="toast-close" class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 pointer-events-auto">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <script>
+    const defaultState = {
+      theme: 'dark',
+      gender: "male",
+      age: 30,
+      height: 170,
+      currentWeight: 75,
+      targetWeight: 65,
+      ifOpenTime: "12:00",
+      ifCloseTime: "20:00",
+      waterCount: 0,
+      waterDate: new Date().toDateString(),
+      streak: 0,
+      lastCheckInDate: null,
+      smartCalories: 0,
+      smartSleep: 0,
+      smartAvgHR: 0,
+      smartDate: new Date().toDateString()
+    };
+
+    let appState = { ...defaultState };
+
+    function loadState() {
+      const saved = localStorage.getItem('ifTrackerStateFull');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          appState = { ...defaultState, ...parsed };
+          
+          if (appState.waterDate !== new Date().toDateString()) {
+            appState.waterCount = 0;
+            appState.waterDate = new Date().toDateString();
+            appState.smartCalories = 0;
+            appState.smartSleep = 0;
+            appState.smartAvgHR = 0;
+            appState.smartDate = new Date().toDateString();
+            saveState();
+          }
+        } catch(e) {}
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem('ifTrackerStateFull', JSON.stringify(appState));
+    }
+
+    function applyTheme() {
+      const isDark = appState.theme === 'dark';
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        document.getElementById('btn-theme').innerHTML = '<i class="fa-solid fa-sun"></i>';
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('btn-theme').innerHTML = '<i class="fa-solid fa-moon"></i>';
+      }
+    }
+
+    document.getElementById('btn-theme').addEventListener('click', () => {
+      appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
+      saveState();
+      applyTheme();
+    });
+
+    const WEEKLY_DATA = {
+      1: { name: "วันจันทร์", shortName: "จ.", workoutType: "cycling", workoutTheme: "Zone 2 Steady Ride", intensity: "Zone 2 (50 นาที)", workoutDesc: "ปั่นเกียร์กลาง ความเร็วรอบขาสม่ำเสมอ เบิร์นไขมันสะสม", workoutTips: "เปิดซีรีส์ดูไประหว่างปั่น เพลินๆ" },
+      2: { name: "วันอังคาร", shortName: "อ.", workoutType: "cycling", workoutTheme: "High Cadence Spin", intensity: "รอบขาจัด (40 นาที)", workoutDesc: "ซอยรอบขาเร็ว เกียร์เบา กระตุ้นระบบหมุนเวียนเลือด", workoutTips: "ฟังเพลง EDM จังหวะ 120-130 BPM" },
+      3: { name: "วันพุธ", shortName: "พ.", workoutType: "rest", workoutTheme: "Active Recovery", intensity: "วันพัก (0 นาที)", workoutDesc: "งดปั่น ให้กล้ามเนื้อซ่อมแซม เดินเล่นหรือยืดเหยียด", workoutTips: "ยืดน่องและสะโพก ลดความตึง" },
+      4: { name: "วันพฤหัสบดี", shortName: "พฤ.", workoutType: "cycling", workoutTheme: "Zone 2 Long Cruise", intensity: "Zone 2 (60 นาที)", workoutDesc: "ปั่นยาวๆ โฟกัสการหายใจทางจมูก ไม่เหนื่อยหอบ", workoutTips: "ฟังพอดแคสต์พัฒนาตัวเอง" },
+      5: { name: "วันศุกร์", shortName: "ศ.", workoutType: "cycling", workoutTheme: "Interval Fun", intensity: "สลับหนักเบา (30 นาที)", workoutDesc: "สปรินต์ 1 นาที สลับเบา 2 นาที 8 รอบ เผาผลาญสูง", workoutTips: "ปั่นสั้นแต่เหนื่อยสะใจ รับวันศุกร์" },
+      6: { name: "วันเสาร์", shortName: "ส.", workoutType: "cycling", workoutTheme: "Power Ride", intensity: "ตามอารมณ์ (45 นาที)", workoutDesc: "อยากเร่งก็เร่ง อยากชิลก็ชิล ฟังเสียงร่างกาย", workoutTips: "ไม่เครียดตัวเลข ปั่นให้สนุก" },
+      7: { name: "วันอาทิตย์", shortName: "อา.", workoutType: "rest", workoutTheme: "Total Rest Day", intensity: "พัก 100%", workoutDesc: "พักขา เดินห้าง ช้อปปิ้ง ชาร์จแบตใจเตรียมลุยสัปดาห์หน้า", workoutTips: "กินอาหารอร่อยๆ 80/20 กฎความสุข" }
+    };
+
+    const WATER_SCHEDULE = [
+      { hour: 6, minute: 0, title: "น้ำ 2 แก้ว (500ml)", desc: "เพิ่งตื่นนอน กระตุ้นขับถ่าย ล้างสารพิษ" },
+      { hour: 8, minute: 0, title: "น้ำ 1 แก้ว (250ml)", desc: "จิบช่วงเช้า ลดอาการท้องร้องช่วง Fasting" },
+      { hour: 10, minute: 0, title: "น้ำ 1 แก้ว (250ml)", desc: "จิบสายๆ ช่วยขับโซเดียม ลดอาการบวมน้ำ" },
+      { hour: 12, minute: 0, title: "น้ำ 1 แก้ว (250ml)", desc: "เปิด Fast มื้อแรก ช่วยกระบวนการย่อย" },
+      { hour: 14, minute: 0, title: "น้ำ 1 แก้ว (250ml)", desc: "จิบบ่ายๆ รักษาความสดชื่น ไม่ให้เลือดหนืด" },
+      { hour: 16, minute: 0, title: "น้ำ 1 แก้ว (250ml)", desc: "เตรียมร่างกาย Hydration ก่อนซ้อมเย็น" },
+      { hour: 17, minute: 30, title: "น้ำ 1 แก้ว (250ml)", desc: "ดื่มล่วงหน้า 30 นาทีก่อนเริ่มปั่นจักรยาน" },
+      { hour: 18, minute: 30, title: "ระหว่างซ้อม 2 แก้ว (~500ml)", desc: "ชดเชยเหงื่อจากการปั่น จิบทีละนิดเรื่อยๆ" },
+      { hour: 19, minute: 30, title: "น้ำ 1 แก้ว (250ml)", desc: "หลังซ้อมและมื้อเย็น ช่วยฟื้นฟูกล้ามเนื้อ" },
+      { hour: 21, minute: 0, title: "น้ำแก้วสุดท้าย! 1 แก้ว (250ml)", desc: "หยุดดื่มหลังแก้วนี้ ป้องกันตื่นมาปัสสาวะกลางดึก" }
+    ];
+
+    const RANDOM_MEALS = {
+      proteins: ["อกไก่ย่างพริกไทยดำ", "ทูน่าในน้ำแร่", "ปลากะพงนึ่งซีอิ๊ว", "กุ้งลวก", "ไข่ต้ม 3 ฟอง", "สันในหมูย่าง", "เต้าหู้แข็งย่าง"],
+      carbs: ["ข้าวไรซ์เบอร์รี่", "มันหวานนึ่ง", "ฟักทองต้ม", "เส้นหมี่ข้าวกล้อง", "ข้าวโพดหวานต้ม", "ขนมปังโฮลวีต"],
+      veggies: ["บล็อกโคลี่ต้ม", "ผักกาดขาวลวก", "สลัดผักรวมร็อกเก็ต", "แตงกวาและมะเขือเทศราชินี", "ผักโขมลวก"],
+      sauces: ["น้ำสลัดงาญี่ปุ่นใส", "น้ำยำมะนาวสดรสแซ่บ", "น้ำสลัดบัลซามิก", "ซีอิ๊วขาวลดโซเดียม", "น้ำจิ้มสุกี้สูตรคลีน"]
+    };
+
+    let selectedDay = 1;
+    let currentRealDay = 1;
+    let SCHEDULE_EVENTS = [];
+    let TODAY_EVENTS = [];
+
+    function parseTime(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return { hour: h, minute: m, dec: h + (m/60) };
+    }
+
+    function buildDynamicEvents(dayNum) {
+      const dayData = WEEKLY_DATA[dayNum];
+      const isRest = dayData.workoutType === 'rest';
+      const open = parseTime(appState.ifOpenTime);
+      const close = parseTime(appState.ifCloseTime);
+
+      let snackH = open.hour + Math.floor((close.hour - open.hour)/2);
+      let workoutH = close.hour - 2;
+      let meal2H = close.hour - 1;
+      
+      if(workoutH <= snackH) workoutH = snackH + 1;
+      if(meal2H <= workoutH) meal2H = workoutH + 1;
+
+      return [
+        { time: "06:00", hour: 6, minute: 0, title: "ตื่นนอน & ดื่มน้ำเปล่า", desc: "กระตุ้นระบบขับถ่าย", badge: "Fasting", badgeClass: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300", icon: "fa-glass-water", iconClass: "bg-indigo-50 text-indigo-500 dark:bg-slate-800 border-indigo-200 dark:border-indigo-500/30", type: "fasting" },
+        { time: "08:30", hour: 8, minute: 30, title: "อเมริกาโน่โซดา 0%", desc: "กาแฟดำลดหิว ไม่กระตุ้นอินซูลิน", badge: "Fasting Drink", badgeClass: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300", icon: "fa-mug-hot", iconClass: "bg-amber-50 text-amber-500 dark:bg-slate-800 border-amber-200 dark:border-amber-500/30", type: "fasting" },
+        { time: appState.ifOpenTime, hour: open.hour, minute: open.minute, title: "มื้อที่ 1: เปิด Fast", desc: "เน้นโปรตีนและคาร์บเชิงซ้อน", badge: "Feeding เปิดมื้อ", badgeClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300", icon: "fa-utensils", iconClass: "bg-emerald-50 text-emerald-500 dark:bg-slate-800 border-emerald-200 dark:border-emerald-500/30", type: "feeding" },
+        { time: `${String(snackH).padStart(2,'0')}:30`, hour: snackH, minute: 30, title: "ของว่างยามบ่าย", desc: "ผลไม้หรือถั่ว เติมพลังก่อนซ้อม", badge: "Pre-Snack", badgeClass: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300", icon: "fa-apple-whole", iconClass: "bg-yellow-50 text-yellow-500 dark:bg-slate-800 border-yellow-200 dark:border-yellow-500/30", type: "feeding" },
+        { time: `${String(workoutH).padStart(2,'0')}:00`, hour: workoutH, minute: 0, title: isRest ? "พักผ่อน (Rest Day)" : `ซ้อม: ${dayData.workoutTheme}`, desc: dayData.workoutDesc, badge: isRest ? "Rest" : "Workout", badgeClass: isRest ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300", icon: isRest ? "fa-spa" : "fa-person-biking", iconClass: isRest ? "bg-purple-50 text-purple-500 dark:bg-slate-800 border-purple-200 dark:border-purple-500/30" : "bg-orange-50 text-orange-500 dark:bg-slate-800 border-orange-200 dark:border-orange-500/30", type: isRest ? "rest" : "workout" },
+        { time: `${String(meal2H).padStart(2,'0')}:15`, hour: meal2H, minute: 15, title: "มื้อที่ 2: เตรียมปิด Fast", desc: "ทานให้อิ่มและจบก่อนหมดเวลา", badge: "Feeding ปิดมื้อ", badgeClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300", icon: "fa-bowl-food", iconClass: "bg-emerald-50 text-emerald-500 dark:bg-slate-800 border-emerald-200 dark:border-emerald-500/30", type: "feeding" },
+        { time: appState.ifCloseTime, hour: close.hour, minute: close.minute, title: "เริ่ม Fasting", desc: "หยุดกิน ดื่มน้ำเปล่าเท่านั้น", badge: "เริ่ม Fasting", badgeClass: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300", icon: "fa-lock", iconClass: "bg-indigo-50 text-indigo-500 dark:bg-slate-800 border-indigo-200 dark:border-indigo-500/30", type: "fasting" },
+        { time: "23:30", hour: 23, minute: 30, title: "เตรียมตัวเข้านอน", desc: "ร่างกายหลั่ง Growth Hormone", badge: "Sleep", badgeClass: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300", icon: "fa-bed", iconClass: "bg-slate-100 text-slate-500 dark:bg-slate-800 border-slate-300 dark:border-slate-600", type: "sleep" }
+      ];
+    }
+
+    function updateAnalysisUI() {
+      const weight = parseFloat(appState.currentWeight) || 75;
+      const height = parseFloat(appState.height) || 170;
+      const age = parseInt(appState.age) || 30;
+      const gender = appState.gender || 'male';
+
+      const heightM = height / 100;
+      const bmi = weight / (heightM * heightM);
+      let bmiLabel = "", bmiColor = "";
+      if (bmi < 18.5) { bmiLabel = "น้ำหนักน้อย"; bmiColor = "text-blue-500"; }
+      else if (bmi < 23) { bmiLabel = "สมส่วน"; bmiColor = "text-emerald-500"; }
+      else if (bmi < 25) { bmiLabel = "ท้วม"; bmiColor = "text-yellow-500"; }
+      else { bmiLabel = "อ้วน"; bmiColor = "text-red-500"; }
+
+      let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+      bmr += (gender === 'male') ? 5 : -161;
+
+      let tdee;
+      const titleEl = document.getElementById('tdee-title');
+      if (appState.smartDate === new Date().toDateString() && appState.smartCalories > 0) {
+        tdee = (bmr * 1.2) + appState.smartCalories; 
+        titleEl.textContent = 'เป้าหมายแคลอรี่ (ใช้ข้อมูลนาฬิกา)';
+        titleEl.parentElement.classList.add('text-teal-600', 'dark:text-teal-400');
+        titleEl.parentElement.classList.remove('text-indigo-600', 'dark:text-indigo-400');
+      } else {
+        tdee = bmr * 1.375;
+        titleEl.textContent = 'เป้าหมายแคลอรี่ลดไขมันต่อวัน';
+        titleEl.parentElement.classList.remove('text-teal-600', 'dark:text-teal-400');
+        titleEl.parentElement.classList.add('text-indigo-600', 'dark:text-indigo-400');
+      }
+      const targetCalories = Math.max(1200, tdee - 500);
+
+      document.getElementById('analysis-bmi').textContent = bmi.toFixed(1);
+      const bmiLabelEl = document.getElementById('analysis-bmi-label');
+      bmiLabelEl.textContent = bmiLabel;
+      bmiLabelEl.className = `text-[10px] font-medium mt-0.5 truncate ${bmiColor}`;
+      document.getElementById('analysis-bmr').textContent = Math.round(bmr).toLocaleString() + ' kcal';
+      document.getElementById('analysis-tdee-goal').textContent = Math.round(targetCalories).toLocaleString() + ' kcal';
+      document.getElementById('header-target-weight').textContent = `${appState.targetWeight} kg`;
+    }
+
+    function updateSmartwatchUI() {
+      const isToday = appState.smartDate === new Date().toDateString();
+      const sleep = isToday ? parseFloat(appState.smartSleep) : 0;
+      const cal = isToday ? parseInt(appState.smartCalories) : 0;
+      const hr = isToday ? parseInt(appState.smartAvgHR) : 0;
+      const age = parseInt(appState.age) || 30;
+
+      document.getElementById('sw-sleep-val').textContent = sleep > 0 ? `${sleep} ชม.` : '-- ชม.';
+      document.getElementById('sw-cal-val').textContent = cal > 0 ? cal : '--';
+      document.getElementById('sw-hr-val').textContent = hr > 0 ? hr : '--';
+
+      const sleepAnalysis = document.getElementById('sw-sleep-analysis');
+      if (sleep === 0) {
+        sleepAnalysis.innerHTML = 'รอการบันทึกข้อมูล';
+        sleepAnalysis.className = 'text-[10px] mt-1 text-slate-500 leading-tight';
+      } else if (sleep < 6) {
+        sleepAnalysis.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> พักผ่อนน้อย คอร์ติซอลอาจสูง ลดความหนักการซ้อม';
+        sleepAnalysis.className = 'text-[10px] mt-1 font-medium text-amber-600 dark:text-amber-400 leading-tight';
+      } else if (sleep >= 6 && sleep <= 8) {
+        sleepAnalysis.innerHTML = '<i class="fa-solid fa-check"></i> พักผ่อนได้ดี ร่างกายพร้อมเผาผลาญไขมัน';
+        sleepAnalysis.className = 'text-[10px] mt-1 font-medium text-emerald-600 dark:text-emerald-400 leading-tight';
+      } else {
+        sleepAnalysis.innerHTML = '<i class="fa-solid fa-star"></i> ฟื้นฟูเต็มที่! พร้อมลุยเต็มประสิทธิภาพ';
+        sleepAnalysis.className = 'text-[10px] mt-1 font-medium text-blue-600 dark:text-blue-400 leading-tight';
+      }
+
+      const hrAnalysis = document.getElementById('sw-hr-analysis');
+      if (hr === 0) {
+        hrAnalysis.innerHTML = 'รอการบันทึกข้อมูลหลังซ้อม';
+        hrAnalysis.className = 'text-[10px] mt-1 text-slate-500 leading-tight';
+      } else {
+        const maxHR = 220 - age;
+        const z2Min = Math.round(maxHR * 0.6);
+        const z2Max = Math.round(maxHR * 0.7);
+        if (hr < z2Min) {
+          hrAnalysis.innerHTML = `เป้าหมาย Zone 2: ${z2Min}-${z2Max} bpm (ซ้อมเบาไป)`;
+          hrAnalysis.className = 'text-[10px] mt-1 font-medium text-slate-600 dark:text-slate-400 leading-tight';
+        } else if (hr > z2Max) {
+          hrAnalysis.innerHTML = `<i class="fa-solid fa-fire"></i> หัวใจเต้นสูงเกิน (เป้าหมาย ${z2Min}-${z2Max} bpm)`;
+          hrAnalysis.className = 'text-[10px] mt-1 font-medium text-rose-600 dark:text-rose-400 leading-tight';
+        } else {
+          hrAnalysis.innerHTML = `<i class="fa-solid fa-bullseye"></i> ยอดเยี่ยม! อยู่ใน Zone 2 ตรงจุดเบิร์นไขมัน`;
+          hrAnalysis.className = 'text-[10px] mt-1 font-medium text-emerald-600 dark:text-emerald-400 leading-tight';
+        }
+      }
+    }
+
+    function updateWaterUI() {
+      document.getElementById('water-count-text').textContent = `${appState.waterCount} / 12`;
+      const container = document.getElementById('water-drops-container');
+      container.innerHTML = '';
+      for(let i=1; i<=12; i++) {
+        const drop = document.createElement('i');
+        drop.className = `fa-solid fa-droplet sm:text-lg transition-all duration-300 ${i <= appState.waterCount ? 'water-filled' : 'text-slate-200 dark:text-slate-700'}`;
+        container.appendChild(drop);
+      }
+    }
+
+    document.getElementById('btn-water-add').addEventListener('click', () => {
+      if(appState.waterCount < 12) {
+        appState.waterCount++;
+        saveState(); updateWaterUI();
+      }
+    });
+    
+    document.getElementById('btn-water-minus').addEventListener('click', () => {
+      if(appState.waterCount > 0) {
+        appState.waterCount--;
+        saveState(); updateWaterUI();
+      }
+    });
+
+    function updateStreakUI() {
+      document.getElementById('streak-days').textContent = appState.streak;
+      const todayStr = new Date().toDateString();
+      const btn = document.getElementById('btn-checkin');
+      if(appState.lastCheckInDate === todayStr) {
+        btn.innerHTML = '<i class="fa-solid fa-check-double"></i> วันนี้เช็คอินแล้ว';
+        btn.className = "w-full bg-emerald-500 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md mt-2 flex items-center justify-center gap-2 cursor-not-allowed whitespace-nowrap";
+        btn.disabled = true;
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> บันทึกความสำเร็จของวันนี้';
+        btn.className = "w-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md shadow-orange-500/20 mt-2 flex items-center justify-center gap-2 whitespace-nowrap";
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('btn-checkin').addEventListener('click', () => {
+      const todayStr = new Date().toDateString();
+      if(appState.lastCheckInDate !== todayStr) {
+        appState.streak++;
+        appState.lastCheckInDate = todayStr;
+        saveState(); updateStreakUI();
+        showToast("เยี่ยมมาก!", `ทำ IF สำเร็จต่อเนื่อง ${appState.streak} วันแล้ว`, "fa-fire");
+      }
+    });
+
+    function renderWeekButtons() {
+      const container = document.getElementById('week-day-buttons');
+      container.innerHTML = '';
+      for (let i = 1; i <= 7; i++) {
+        const d = WEEKLY_DATA[i];
+        const isToday = i === currentRealDay;
+        const isSelected = i === selectedDay;
+
+        const btn = document.createElement('button');
+        btn.className = `p-1.5 sm:p-2 rounded-xl text-center flex flex-col items-center justify-center transition border min-w-0 ${
+          isSelected ? 'bg-brand-500 border-brand-400 text-white shadow-md' : isToday ? 'bg-slate-100 dark:bg-slate-700/80 border-emerald-400 dark:border-emerald-500/50 text-emerald-600 dark:text-emerald-300' : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60'
+        }`;
+        btn.innerHTML = `
+          <div class="flex items-center gap-1">
+            <span class="text-[10px] sm:text-xs font-bold">${d.shortName}</span>
+            ${isToday ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>' : ''}
+          </div>
+          <span class="text-[9px] sm:text-[10px] mt-0.5 truncate w-full font-light ${isSelected ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}">${d.workoutType==='rest'?'พัก':'ปั่น'}</span>
+        `;
+        btn.addEventListener('click', () => { selectedDay = i; updateView(); });
+        container.appendChild(btn);
+      }
+      document.getElementById('header-day-badge').textContent = `วันนี้: ${WEEKLY_DATA[currentRealDay].name}`;
+      document.getElementById('selected-day-label').textContent = `ตาราง ${WEEKLY_DATA[selectedDay].name} ${selectedDay === currentRealDay ? '(วันนี้)' : ''}`;
+    }
+
+    function renderScheduleList() {
+      const container = document.getElementById('schedule-list');
+      container.innerHTML = '';
+      SCHEDULE_EVENTS.forEach((item, index) => {
+        const el = document.createElement('div');
+        el.id = `schedule-item-${index}`;
+        el.className = "p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-900/40 transition flex items-start gap-3 min-w-0";
+        el.innerHTML = `
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center shrink-0 text-sm sm:text-base shadow-sm ${item.iconClass}">
+            <i class="fa-solid ${item.icon}"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="font-mono font-bold text-slate-700 dark:text-white text-xs sm:text-sm bg-white dark:bg-slate-800 px-1.5 sm:px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 shrink-0">${item.time}</span>
+                <h4 class="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm truncate">${item.title}</h4>
+              </div>
+              <span class="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap shrink-0 ${item.badgeClass}">${item.badge}</span>
+            </div>
+            <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed truncate sm:whitespace-normal sm:break-words">${item.desc}</p>
+          </div>
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    function renderFocusCards() {
+      const data = WEEKLY_DATA[selectedDay];
+      const isRest = data.workoutType === 'rest';
+      
+      document.getElementById('workout-card-title').textContent = `${data.name}: ${data.workoutTheme}`;
+      document.getElementById('workout-card-subtitle').textContent = isRest ? "ฟื้นฟูกล้ามเนื้อ" : "ปั่นจักรยานในร่ม 1 ชม.";
+      document.getElementById('workout-intensity-tag').textContent = data.intensity;
+      
+      const wIconBox = document.getElementById('workout-icon-box');
+      const wIcon = document.getElementById('workout-box-icon');
+      const wTag = document.getElementById('workout-intensity-tag');
+      
+      if (isRest) {
+        wIcon.className = "fa-solid fa-spa";
+        wIconBox.className = "w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/30 flex items-center justify-center shrink-0";
+        wTag.className = "text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300";
+      } else {
+        wIcon.className = "fa-solid fa-person-biking";
+        wIconBox.className = "w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30 flex items-center justify-center shrink-0";
+        wTag.className = "text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300";
+      }
+
+      document.getElementById('workout-detail-content').innerHTML = `
+        <div class="flex items-start gap-2"><i class="fa-solid fa-bullseye text-brand-400 mt-0.5 shrink-0"></i><span class="break-words"><strong>เป้าหมาย:</strong> ${data.workoutDesc}</span></div>
+        <div class="flex items-start gap-2"><i class="fa-solid fa-lightbulb text-amber-500 mt-0.5 shrink-0"></i><span class="break-words"><strong>ทริก:</strong> ${data.workoutTips}</span></div>
+      `;
+      generateRandomMeal();
+    }
+
+    function generateRandomMeal() {
+      const p = RANDOM_MEALS.proteins[Math.floor(Math.random()*RANDOM_MEALS.proteins.length)];
+      const c = RANDOM_MEALS.carbs[Math.floor(Math.random()*RANDOM_MEALS.carbs.length)];
+      const v = RANDOM_MEALS.veggies[Math.floor(Math.random()*RANDOM_MEALS.veggies.length)];
+      const s = RANDOM_MEALS.sauces[Math.floor(Math.random()*RANDOM_MEALS.sauces.length)];
+      
+      document.getElementById('meal-detail-content').innerHTML = `
+        <div class="flex items-start gap-2"><i class="fa-solid fa-drumstick-bite text-orange-400 mt-0.5 shrink-0"></i><span class="break-words"><strong>โปรตีนหลัก:</strong> ${p}</span></div>
+        <div class="flex items-start gap-2"><i class="fa-solid fa-seedling text-emerald-500 mt-0.5 shrink-0"></i><span class="break-words"><strong>ผัก/ไฟเบอร์:</strong> ${v}</span></div>
+        <div class="flex items-start gap-2"><i class="fa-solid fa-bowl-rice text-amber-600 mt-0.5 shrink-0"></i><span class="break-words"><strong>คาร์บ/ซอส:</strong> ${c} คู่กับ ${s}</span></div>
+      `;
+    }
+    document.getElementById('btn-random-meal').addEventListener('click', generateRandomMeal);
+
+    function drawTimeline() {
+      const openDec = parseTime(appState.ifOpenTime).dec;
+      const closeDec = parseTime(appState.ifCloseTime).dec;
+      
+      const openPercent = (openDec / 24) * 100;
+      const closePercent = (closeDec / 24) * 100;
+      
+      const track = document.getElementById('timeline-track');
+      const labels = document.getElementById('timeline-labels');
+      
+      track.querySelectorAll('.segment').forEach(e => e.remove());
+      labels.innerHTML = '';
+      
+      const f1 = document.createElement('div');
+      f1.className = "segment bg-indigo-300 dark:bg-indigo-500/60 h-full rounded-l border-r border-indigo-400 dark:border-indigo-600";
+      f1.style.width = `${openPercent}%`;
+      track.insertBefore(f1, document.getElementById('day-progress-pin'));
+      
+      const feed = document.createElement('div');
+      feed.className = "segment bg-emerald-400 dark:bg-emerald-500/80 h-full border-r border-emerald-500 dark:border-emerald-600";
+      feed.style.width = `${closePercent - openPercent}%`;
+      track.insertBefore(feed, document.getElementById('day-progress-pin'));
+      
+      const f2 = document.createElement('div');
+      f2.className = "segment bg-indigo-300 dark:bg-indigo-500/60 h-full rounded-r";
+      f2.style.width = `${100 - closePercent}%`;
+      track.insertBefore(f2, document.getElementById('day-progress-pin'));
+
+      const l1 = document.createElement('div');
+      l1.className = "absolute transform -translate-x-1/2 bottom-2 flex flex-col items-center";
+      l1.style.left = `${openPercent}%`;
+      l1.innerHTML = `<span class="text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-white/90 dark:bg-slate-800/90 px-1 rounded shadow-sm z-10 whitespace-nowrap border border-emerald-100 dark:border-emerald-500/30">${appState.ifOpenTime}</span><div class="w-px h-2 bg-emerald-400 dark:bg-emerald-500 mt-0.5"></div>`;
+      labels.appendChild(l1);
+
+      const l2 = document.createElement('div');
+      l2.className = "absolute transform -translate-x-1/2 bottom-2 flex flex-col items-center";
+      l2.style.left = `${closePercent}%`;
+      l2.innerHTML = `<span class="text-[9px] sm:text-[10px] text-indigo-600 dark:text-indigo-400 font-bold bg-white/90 dark:bg-slate-800/90 px-1 rounded shadow-sm z-10 whitespace-nowrap border border-indigo-100 dark:border-indigo-500/30">${appState.ifCloseTime}</span><div class="w-px h-2 bg-indigo-400 dark:bg-indigo-500 mt-0.5"></div>`;
+      labels.appendChild(l2);
+    }
+
+    function updateView() {
+      SCHEDULE_EVENTS = buildDynamicEvents(selectedDay);
+      TODAY_EVENTS = buildDynamicEvents(currentRealDay); // Event ของวันนี้จริงเสมอ
+      
+      updateAnalysisUI();
+      updateSmartwatchUI();
+      updateWaterUI();
+      updateStreakUI();
+      renderWeekButtons();
+      renderScheduleList();
+      renderFocusCards();
+      drawTimeline();
+    }
+
+    const smartwatchModal = document.getElementById('smartwatch-modal');
+    document.getElementById('btn-open-smartwatch').addEventListener('click', () => {
+      document.getElementById('input-sw-sleep').value = appState.smartSleep || '';
+      document.getElementById('input-sw-cal').value = appState.smartCalories || '';
+      document.getElementById('input-sw-hr').value = appState.smartAvgHR || '';
+      smartwatchModal.classList.remove('hidden');
+    });
+    
+    document.getElementById('btn-close-smartwatch').addEventListener('click', () => smartwatchModal.classList.add('hidden'));
+    
+    document.getElementById('btn-save-smartwatch').addEventListener('click', () => {
+      const sleep = parseFloat(document.getElementById('input-sw-sleep').value) || 0;
+      const cal = parseInt(document.getElementById('input-sw-cal').value) || 0;
+      const hr = parseInt(document.getElementById('input-sw-hr').value) || 0;
+      
+      appState.smartSleep = sleep;
+      appState.smartCalories = cal;
+      appState.smartAvgHR = hr;
+      appState.smartDate = new Date().toDateString();
+      
+      saveState(); updateView(); smartwatchModal.classList.add('hidden');
+      showToast('บันทึกสำเร็จ', 'ประมวลผลสุขภาพของคุณเรียบร้อยแล้ว', 'fa-chart-line');
+    });
+
+    const settingsModal = document.getElementById('settings-modal');
+    document.getElementById('btn-settings').addEventListener('click', () => {
+      document.getElementById('input-gender').value = appState.gender;
+      document.getElementById('input-age').value = appState.age;
+      document.getElementById('input-height').value = appState.height;
+      document.getElementById('input-current-weight').value = appState.currentWeight;
+      document.getElementById('input-target-weight').value = appState.targetWeight;
+      document.getElementById('input-if-open').value = appState.ifOpenTime;
+      document.getElementById('input-if-close').value = appState.ifCloseTime;
+      settingsModal.classList.remove('hidden');
+    });
+    
+    document.getElementById('btn-close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
+    
+    document.getElementById('btn-save-settings').addEventListener('click', () => {
+      const g = document.getElementById('input-gender').value;
+      const a = document.getElementById('input-age').value;
+      const h = document.getElementById('input-height').value;
+      const cw = document.getElementById('input-current-weight').value;
+      const tw = document.getElementById('input-target-weight').value;
+      const op = document.getElementById('input-if-open').value;
+      const cl = document.getElementById('input-if-close').value;
+      
+      if(tw && op && cl && a && h && cw) {
+        appState.gender = g; appState.age = parseInt(a); appState.height = parseFloat(h);
+        appState.currentWeight = parseFloat(cw); appState.targetWeight = parseFloat(tw);
+        appState.ifOpenTime = op; appState.ifCloseTime = cl;
+        saveState(); updateView(); tick(); settingsModal.classList.add('hidden');
+        showToast('บันทึกสำเร็จ', 'ข้อมูลและตารางเวลาถูกอัปเดตใหม่ทั้งหมด', 'fa-check');
+      }
+    });
+
+    let soundEnabled = true;
+    let audioSynth = null;
+    let wakeLock = null;
+    const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 68;
+    let triggeredToday = new Set();
+    let toastTimeout = null;
+
+    function initToneAudio() {
+      if (!audioSynth && typeof Tone !== 'undefined') {
+        try {
+          audioSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" } }).toDestination();
+          audioSynth.volume.value = -6;
+        } catch (e) {}
+      }
+    }
+
+    function playNotificationSound(type = 'default') {
+      if (!soundEnabled) return;
+      try {
+        if (Tone.context.state !== 'running') Tone.start();
+        initToneAudio();
+        const now = Tone.now();
+        if (type === 'workout') audioSynth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n", now);
+        else if (type === 'feeding') audioSynth.triggerAttackRelease(["F4", "A4", "C5"], "4n", now);
+        else audioSynth.triggerAttackRelease(["G4", "C5"], "8n", now);
+      } catch (err) {}
+    }
+
+    const toastModal = document.getElementById('toast-modal');
+    function showToast(title, message, iconClass = 'fa-bell') {
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-message').textContent = message;
+      document.getElementById('toast-icon').className = `fa-solid ${iconClass}`;
+      toastModal.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toastModal.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+      }, 5000);
+    }
+    document.getElementById('toast-close').addEventListener('click', () => {
+      toastModal.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+    });
+
+    document.getElementById('btn-wakelock').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-wakelock');
+      if ('wakeLock' in navigator) {
+        try {
+          if (wakeLock !== null) {
+            await wakeLock.release(); wakeLock = null;
+            btn.classList.remove('text-amber-500', 'bg-amber-50', 'dark:bg-amber-500/20');
+            btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+            showToast("พักหน้าจอ", "ระบบประหยัดพลังงานทำงานปกติ", "fa-eye-slash");
+          } else {
+            wakeLock = await navigator.wakeLock.request('screen');
+            btn.classList.add('text-amber-500', 'bg-amber-50', 'dark:bg-amber-500/20');
+            btn.innerHTML = '<i class="fa-solid fa-eye"></i>';
+            showToast("ล็อคหน้าจอเปิด", "หน้าจอจะไม่ดับระหว่างใช้งาน", "fa-eye");
+          }
+        } catch (err) {}
+      } else { showToast("ไม่รองรับ", "เบราว์เซอร์ไม่รองรับ Wake Lock", "fa-circle-exclamation"); }
+    });
+
+    document.getElementById('btn-toggle-sound').addEventListener('click', () => {
+      initToneAudio(); soundEnabled = !soundEnabled;
+      const icon = document.getElementById('sound-icon');
+      const btn = document.getElementById('btn-toggle-sound');
+      if (soundEnabled) {
+        icon.className = "fa-solid fa-volume-high"; btn.classList.remove('text-red-500');
+        playNotificationSound();
+      } else {
+        icon.className = "fa-solid fa-volume-xmark"; btn.classList.add('text-red-500');
+      }
+    });
+
+    function tick() {
+      const now = new Date();
+      const hours = now.getHours(); const minutes = now.getMinutes(); const seconds = now.getSeconds();
+      const totalMinutesNow = hours * 60 + minutes;
+
+      let todayDay = now.getDay() === 0 ? 7 : now.getDay();
+      if (todayDay !== currentRealDay) {
+        currentRealDay = todayDay;
+        const newDateStr = now.toDateString();
+        if(appState.waterDate !== newDateStr) {
+          appState.waterCount = 0; 
+          appState.waterDate = newDateStr; 
+          appState.smartCalories = 0;
+          appState.smartSleep = 0;
+          appState.smartAvgHR = 0;
+          appState.smartDate = newDateStr;
+          saveState(); 
+          updateView();
+        }
+      }
+
+      document.getElementById('current-time-text').textContent = [String(hours).padStart(2,'0'), String(minutes).padStart(2,'0'), String(seconds).padStart(2,'0')].join(':');
+      
+      const dayPercent = ((totalMinutesNow * 60 + seconds) / 86400) * 100;
+      document.getElementById('day-progress-pin').style.left = `${dayPercent}%`;
+
+      const openDec = parseTime(appState.ifOpenTime).dec;
+      const closeDec = parseTime(appState.ifCloseTime).dec;
+      const openMinutes = openDec * 60;
+      const closeMinutes = closeDec * 60;
+      
+      const isFeeding = totalMinutesNow >= openMinutes && totalMinutesNow < closeMinutes;
+      const stateBadge = document.getElementById('state-badge');
+      const progressCircle = document.getElementById('progress-circle');
+      const timerDisplay = document.getElementById('timer-display');
+
+      let diffSeconds = 0; let progress = 0;
+      let curSec = hours * 3600 + minutes * 60 + seconds;
+      
+      if (isFeeding) {
+        stateBadge.textContent = "ช่วง Feeding (กินอาหาร)";
+        stateBadge.className = "px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-1 bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 whitespace-nowrap transition-colors";
+        progressCircle.classList.remove('text-indigo-500'); progressCircle.classList.add('text-emerald-500');
+        
+        diffSeconds = Math.max(0, (closeDec*3600) - curSec);
+        progress = (curSec - (openDec*3600)) / ((closeDec - openDec)*3600);
+      } else {
+        stateBadge.textContent = "ช่วง Fasting (อดอาหาร)";
+        stateBadge.className = "px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-1 bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 whitespace-nowrap transition-colors";
+        progressCircle.classList.remove('text-emerald-500'); progressCircle.classList.add('text-indigo-500');
+        
+        let targetSec = openDec * 3600;
+        if (totalMinutesNow >= closeMinutes) {
+          diffSeconds = (24 * 3600 - curSec) + targetSec;
+          progress = (curSec - closeDec*3600) / ((24-closeDec+openDec)*3600);
+        } else {
+          diffSeconds = targetSec - curSec;
+          progress = ((24-closeDec)*3600 + curSec) / ((24-closeDec+openDec)*3600);
+        }
+      }
+
+      timerDisplay.textContent = `${String(Math.floor(diffSeconds/3600)).padStart(2,'0')}:${String(Math.floor((diffSeconds%3600)/60)).padStart(2,'0')}:${String(diffSeconds%60).padStart(2,'0')}`;
+      progressCircle.style.strokeDashoffset = CIRCLE_CIRCUMFERENCE - (progress * CIRCLE_CIRCUMFERENCE);
+
+      // ใช้ TODAY_EVENTS สำหรับประมวลผลสถานะปัจจุบัน เพื่อไม่ให้เพี้ยนเวลากดดูวันอื่น
+      let activeEv = null, nextEv = null;
+      for (let i = 0; i < TODAY_EVENTS.length; i++) {
+        let evTime = TODAY_EVENTS[i].hour * 60 + TODAY_EVENTS[i].minute;
+        if (totalMinutesNow >= evTime) activeEv = TODAY_EVENTS[i];
+        if (totalMinutesNow < evTime && !nextEv) nextEv = TODAY_EVENTS[i];
+      }
+      if (!nextEv) nextEv = TODAY_EVENTS[0];
+      if (!activeEv) activeEv = TODAY_EVENTS[TODAY_EVENTS.length-1];
+
+      document.getElementById('next-event-text').textContent = `${nextEv.time} - ${nextEv.title.split(':')[0]}`;
+      document.getElementById('activity-title').textContent = activeEv.title;
+      document.getElementById('activity-desc').textContent = activeEv.desc;
+      document.getElementById('activity-tips').innerHTML = `<i class="fa-solid fa-lightbulb mt-0.5 shrink-0"></i><span class="break-words">หมวดหมู่: ${activeEv.type.toUpperCase()}</span>`;
+      document.getElementById('activity-icon').className = `fa-solid ${activeEv.icon}`;
+      document.getElementById('activity-icon-container').className = `w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0 transition-colors ${activeEv.iconClass}`;
+
+      SCHEDULE_EVENTS.forEach((ev, idx) => {
+        const el = document.getElementById(`schedule-item-${idx}`);
+        if(el) {
+          if(ev.time === nextEv.time && selectedDay === currentRealDay) el.classList.add('border-brand-500/50', 'bg-brand-50/50', 'dark:bg-brand-900/20');
+          else el.classList.remove('border-brand-500/50', 'bg-brand-50/50', 'dark:bg-brand-900/20');
+        }
+      });
+
+      if (seconds === 0) {
+        TODAY_EVENTS.forEach(item => {
+          if (item.hour === hours && item.minute === minutes) {
+            const k = `${hours}:${minutes}`;
+            if (!triggeredToday.has(k)) {
+              triggeredToday.add(k);
+              playNotificationSound(item.type);
+              showToast(`ถึงเวลา: ${item.time} น.`, item.title, item.icon);
+            }
+          }
+        });
+
+        WATER_SCHEDULE.forEach(item => {
+          if (item.hour === hours && item.minute === minutes) {
+            const k = `water-${hours}:${minutes}`;
+            if (!triggeredToday.has(k)) {
+              triggeredToday.add(k);
+              playNotificationSound('feeding');
+              showToast(`เวลาดื่มน้ำ: ${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')} น.`, item.title + " - " + item.desc, "fa-glass-water");
+            }
+          }
+        });
+
+        if (hours === 0 && minutes === 0) triggeredToday.clear();
+      }
+    }
+
+    document.getElementById('btn-jump-today').addEventListener('click', () => {
+      selectedDay = currentRealDay; updateView(); tick();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState(); applyTheme();
+      currentRealDay = new Date().getDay() === 0 ? 7 : new Date().getDay();
+      selectedDay = currentRealDay;
+      updateView();
+      tick(); // บังคับรันครั้งแรกทันที ไม่ต้องรอ 1 วินาที
+      setInterval(tick, 1000);
+    });
+  </script>
+</body>
+</html>
